@@ -66,7 +66,7 @@ function App() {
     
     try {
       // Start SSE connection for progress updates
-      const es = new EventSource(`/api/analyze-progress?url=${encodeURIComponent(url)}`);
+      const es = new EventSource(`/api/analyze?url=${encodeURIComponent(url)}`);
       setEventSource(es);
       
       es.onmessage = (event) => {
