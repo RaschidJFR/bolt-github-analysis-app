@@ -39,6 +39,23 @@ function App() {
     }
   };
 
+  const downloadCSV = (csvData: string, filename: string) => {
+    // Decode base64 CSV data
+    const decodedData = atob(csvData);
+    const blob = new Blob([decodedData], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Clean up the URL object
+    window.URL.revokeObjectURL(url);
+  };
+
   const handleAnalyze = async () => {
     if (!isValid || !url.trim()) return;
 
@@ -61,16 +78,17 @@ function App() {
             timestamp: new Date().toLocaleTimeString()
           }]);
         } else if (data.type === 'complete') {
-          // Analysis complete, download CSV
-          const downloadUrl = `/api/download-csv?url=${encodeURIComponent(url)}`;
-          const link = document.createElement('a');
-          link.href = downloadUrl;
-          link.download = `analysis-${Date.now()}.csv`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+          // Analysis complete, download CSV from base64 data
+          if (data.csv_data && data.filename) {
+            downloadCSV(data.csv_data, data.filename);
+          }
           
           // Only stop loading, don't reset form
+          setIsLoading(false);
+          es.close();
+          setEventSource(null);
+        } else if (data.type === 'error') {
+          setError(data.message || 'An error occurred during analysis.');
           setIsLoading(false);
           es.close();
           setEventSource(null);
