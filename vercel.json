@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/analyze-progress.py": {
+    "api/analyze.py": {
       "maxDuration": 30
     }
   },

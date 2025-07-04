@@ -6,7 +6,7 @@ from flask_cors import CORS
 # Add the api directory to the Python path so we can import the module
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'api'))
 
-# Import the handler class from analyze-progress.py
+# Import the handler class from analyze.py
 from analyze_progress import handler
 
 app = Flask(__name__)
@@ -44,7 +44,7 @@ class MockResponse:
 
 @app.route('/analyze', methods=['GET', 'OPTIONS'])
 def analyze():
-    """Analyze endpoint that uses the handler from analyze-progress.py"""
+    """Analyze endpoint that uses the handler from analyze.py"""
     
     # Handle CORS preflight request
     if request.method == 'OPTIONS':

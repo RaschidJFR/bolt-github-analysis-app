@@ -50,7 +50,7 @@ The `vercel.json` configuration ensures:
 
 ## API Endpoints
 
-### `/api/analyze-progress`
+### `/api/analyze`
 - **Method**: GET
 - **Description**: Server-Sent Events endpoint for real-time progress updates
 - **Parameters**: `url` (GitHub repository URL)
