@@ -1,10 +1,14 @@
 import json
 import time
 import urllib.parse
-import csv
-import io
 import base64
 from http.server import BaseHTTPRequestHandler
+from ghIssueAnalyzer import IssueAnalyzer, ChatGPT
+import pandas as pd
+from pydispatch import dispatcher
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
@@ -39,125 +43,97 @@ class handler(BaseHTTPRequestHandler):
         # Keep the connection open for SSE
         self.close_connection = False
         
-        # Mock analysis process with progress updates
-        progress_steps = [
-            {"message": "🚀 Starting repository analysis...", "delay": 1},
-            {"message": "📥 Cloning repository and scanning files...", "delay": 5},
-            {"message": "🔍 Analyzing code structure and dependencies...", "delay": 4},
-            {"message": "📊 Generating comprehensive report...", "delay": 3},
-            {"message": "✅ Analysis complete! Preparing download...", "delay": 2}
-        ]
-        
         try:
-            # Send progress updates
-            for step in progress_steps:
-                event_data = {
-                    "type": "progress",
-                    "message": step["message"],
-                    "timestamp": time.time()
-                }
-                
-                self.wfile.write(f"data: {json.dumps(event_data)}\n\n".encode())
-                self.wfile.flush()
-                
-                # Simulate processing time
-                time.sleep(step["delay"])
             
-            # Generate CSV data
-            csv_data = self.generate_mock_csv_data(url)
-            csv_b64 = base64.b64encode(csv_data.encode('utf-8')).decode('utf-8')
+            # Extract repo name and owner from URL
+            parsed_url = urllib.parse.urlparse(url)
+            path_parts = parsed_url.path.strip('/').split('/')
+            if len(path_parts) < 2:
+                self.on_error("Invalid repository URL")
+                return
+            repo_owner = path_parts[0]
+            repo_name = path_parts[1]
+            if not repo_owner or not repo_name:
+                self.on_error("Invalid repository URL")
+                return
             
-            # Send completion event with CSV data
-            completion_data = {
-                "type": "complete",
-                "message": "Analysis completed successfully!",
-                "timestamp": time.time(),
-                "csv_data": csv_b64,
-                "filename": "repository-analysis.csv"
-            }
+            # Initialize the IssueAnalyzer with the repository and API token
+            if not os.getenv('GITHUB_TOKEN'):
+                self.on_error("Missing GITHUB_TOKEN environment variable")
+                return
+            if not os.getenv('OPENAI_API_KEY'):
+                self.on_error("Missing OPENAI_API_KEY environment variable")
+            if not repo_name or not repo_owner:
+                self.on_error("Invalid repository name or owner")
+            agent = IssueAnalyzer(f"{repo_name}/{repo_owner}", os.getenv('GITHUB_TOKEN'), ChatGPT(os.getenv('OPENAI_API_KEY')))
             
-            self.wfile.write(f"data: {json.dumps(completion_data)}\n\n".encode())
-            self.wfile.flush()
+            # Connect signals to handlers
+            dispatcher.connect(
+                self.on_progress_update,
+                sender=agent,
+                signal=IssueAnalyzer.Signals.PROGRESS_UPDATE)
+            dispatcher.connect(
+                self.on_completion,
+                sender=agent,
+                signal=IssueAnalyzer.Signals.TASK_COMPLETED)
+            dispatcher.connect(
+                self.on_error,
+                sender=agent,
+                signal=IssueAnalyzer.Signals.ERROR)
             
-            # Add small delay to allow client to process the completion event
-            time.sleep(0.1)
+            # Start the analysis process
+            agent.fetch_issues(url)
+            agent.analyze()
             
         except Exception as e:
-            error_data = {
-                "type": "error",
-                "message": f"Analysis failed: {str(e)}",
-                "timestamp": time.time()
-            }
-            
-            self.wfile.write(f"data: {json.dumps(error_data)}\n\n".encode())
-            self.wfile.flush()
+            self.on_error(str(e))
     
-    def generate_mock_csv_data(self, repo_url):
-        """Generate mock CSV data for the repository analysis"""
+    def on_progress_update(self, step: IssueAnalyzer.Steps, data={}):
+        """Send a single SSE update"""
+        message = "In progress..."
         
-        # Extract repository info from URL
-        repo_parts = repo_url.rstrip('/').split('/')
-        repo_name = repo_parts[-1] if repo_parts else 'unknown'
-        owner = repo_parts[-2] if len(repo_parts) > 1 else 'unknown'
+        if step==IssueAnalyzer.Steps.FETCHING_ISSUES:
+            message = "🔍 Fetching repo issues (1/5)..."
+        elif step==IssueAnalyzer.Steps.TRACTION_ANALYSIS_STARTED:
+            message = "📣 Analyzing interactions (2/5)..."
+        elif step==IssueAnalyzer.Steps.ISSUE_SUMMARIZATION_STARTED:
+            message = "📖 Reading top issues (3/5)..."
+        elif step==IssueAnalyzer.Steps.IMPACT_ANALYSIS_STARTED:
+            message = "📊 Analyzing impact (4/5)..."
+        elif step==IssueAnalyzer.Steps.SCORING_STARTED:
+            message = "🏅 Ranking issues (5/5)..."
         
-        # Create CSV in memory
-        output = io.StringIO()
-        writer = csv.writer(output)
+        event_data = {
+            "type": "update",
+            "message": message,
+            "timestamp": time.time()
+        }
+        self.wfile.write(f"data: {json.dumps(event_data)}\n\n".encode())
+        self.wfile.flush()
+            
+    def on_error(self, data="Unknown error"):
+        """Send error event"""
+        error_data = {
+            "type": "error",
+            "message": data,
+            "timestamp": time.time()
+        }
+        self.wfile.write(f"data: {json.dumps(error_data)}\n\n".encode())
+        self.wfile.flush()
         
-        # Write header
-        writer.writerow(['Metric', 'Value', 'Description'])
+    def on_completion(self, data: list[dict]=[]):
+        """Send completion event with CSV data"""
+        filename = "analysis.csv"
+        csv_data = pd.DataFrame(data).to_csv(index=False)
+        csv_b64 = base64.b64encode(csv_data.encode('utf-8')).decode('utf-8')
         
-        # Write mock data
-        mock_data = [
-            ['Repository Name', repo_name, 'Name of the analyzed repository'],
-            ['Owner', owner, 'Repository owner/organization'],
-            ['Total Files', '156', 'Total number of files in the repository'],
-            ['Lines of Code', '12,847', 'Total lines of code (excluding comments and blank lines)'],
-            ['Primary Language', 'JavaScript', 'Most used programming language'],
-            ['Languages Used', 'JavaScript, TypeScript, CSS, HTML', 'All programming languages detected'],
-            ['Dependencies', '23', 'Number of external dependencies'],
-            ['Dev Dependencies', '15', 'Number of development dependencies'],
-            ['Commits', '89', 'Total number of commits'],
-            ['Contributors', '4', 'Number of unique contributors'],
-            ['Last Updated', '2024-01-15', 'Date of last commit'],
-            ['Repository Size', '2.3 MB', 'Total repository size'],
-            ['Open Issues', '7', 'Number of open issues'],
-            ['Stars', '42', 'Number of stars'],
-            ['Forks', '12', 'Number of forks'],
-            ['License', 'MIT', 'Repository license'],
-            ['README Present', 'Yes', 'Whether README file exists'],
-            ['Package Manager', 'npm', 'Package manager used'],
-            ['CI/CD', 'GitHub Actions', 'Continuous integration setup'],
-            ['Code Quality Score', '8.5/10', 'Overall code quality assessment'],
-            ['Security Score', '9.2/10', 'Security vulnerability assessment'],
-            ['Maintainability', 'High', 'Code maintainability rating'],
-            ['Documentation Coverage', '78%', 'Percentage of documented code'],
-            ['Test Coverage', '85%', 'Percentage of code covered by tests'],
-            ['Complexity Score', 'Medium', 'Code complexity assessment']
-        ]
+        completion_data = {
+            "type": "complete",
+            "message": "Analysis completed successfully!",
+            "timestamp": time.time(),
+            "csv_data": csv_b64,
+            "filename": filename
+        }
         
-        for row in mock_data:
-            writer.writerow(row)
-        
-        # Add file structure section
-        writer.writerow([])  # Empty row for spacing
-        writer.writerow(['File Structure', '', ''])
-        writer.writerow(['Path', 'Type', 'Size (bytes)'])
-        
-        file_structure = [
-            ['src/', 'directory', ''],
-            ['src/components/', 'directory', ''],
-            ['src/components/App.tsx', 'file', '2,456'],
-            ['src/components/Header.tsx', 'file', '1,234'],
-            ['src/utils/', 'directory', ''],
-            ['src/utils/helpers.ts', 'file', '987'],
-            ['package.json', 'file', '1,567'],
-            ['README.md', 'file', '3,421'],
-            ['tsconfig.json', 'file', '456'],
-            ['.gitignore', 'file', '234']
-        ]
-        
-        for file_info in file_structure:
-            writer.writerow(file_info)
-        
-        return output.getvalue()
+        self.wfile.write(f"data: {json.dumps(completion_data)}\n\n".encode())
+        self.wfile.flush()
