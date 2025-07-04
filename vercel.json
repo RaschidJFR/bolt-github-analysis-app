@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "api/analyze-progress.py": {
+      "maxDuration": 30
+    },
+    "api/download-csv.py": {
+      "maxDuration": 10
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    }
+  ]
+}
