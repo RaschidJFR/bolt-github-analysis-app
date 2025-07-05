@@ -65,7 +65,7 @@ class handler(BaseHTTPRequestHandler):
                 self.on_error("Missing OPENAI_API_KEY environment variable")
             if not repo_name or not repo_owner:
                 self.on_error("Invalid repository name or owner")
-            agent = IssueAnalyzer(f"{repo_name}/{repo_owner}", os.getenv('GITHUB_TOKEN'), ChatGPT(os.getenv('OPENAI_API_KEY')))
+            agent = IssueAnalyzer(f"{repo_owner}/{repo_name}", os.getenv('GITHUB_TOKEN'), ChatGPT(os.getenv('OPENAI_API_KEY')))
             
             # Connect signals to handlers
             dispatcher.connect(
@@ -82,8 +82,7 @@ class handler(BaseHTTPRequestHandler):
                 signal=IssueAnalyzer.Signals.ERROR)
             
             # Start the analysis process
-            agent.fetch_issues(url)
-            agent.analyze()
+            agent.fetch_issues().analyze()
             
         except Exception as e:
             self.on_error(str(e))
