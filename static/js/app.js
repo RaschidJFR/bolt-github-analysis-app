@@ -141,6 +141,12 @@ class RepositoryAnalyzer {
         this.setError('');
         this.updateLoadingState();
         this.updateAnalyzeButton();
+        
+        // Add initial "Analysis started" message
+        this.progress.push({
+            message: '🚀 Analysis started - this may take ~2 minutes',
+            timestamp: new Date().toLocaleTimeString()
+        });
         this.updateProgressDisplay();
         this.startProgressSpinner();
         
