@@ -18,11 +18,13 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
                     </svg>
                     <h1 class="text-4xl font-bold text-gray-900">
-                        Repository Analyzer
+                        Repository Issue Analyzer
                     </h1>
                 </div>
                 <p class="text-lg text-gray-600 max-w-lg mx-auto">
-                    Paste a GitHub repository URL below to analyze its structure, dependencies, and generate a comprehensive CSV report.
+                    A tool for analyzing and prioritizing GitHub issues based on traction, impact, and estimated effort. 
+                    This tool helps project maintainers identify which issues to focus on first.
+
                 </p>
             </div>
 
@@ -84,13 +86,167 @@
             <!-- Info Section -->
             <div class="text-center text-sm text-gray-500">
                 <p>
-                    The analysis will generate a comprehensive CSV report containing repository metrics,
-                    file structure, dependencies, and code statistics.
+                    The analysis will generate a CSV report containing the top 15 issues based on the algorithm. 
+                    For more information, visit the <a href="https://github.com/RaschidJFR/github-issue-analyzer" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">GitHub repository</a>.
                 </p>
+            </div>
+
+            <!-- How to Read Section -->
+            <div class="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+                <h2 class="text-2xl font-bold text-gray-900">How to read the report</h2>
+                <p class="text-gray-700">
+                    The analysis returns a csv with the following columns:
+                </p>
+
+                <div class="space-y-6">
+                    <!-- Main Fields -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Main Fields</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full border border-gray-300 rounded-lg">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b">Column</th>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b">Type</th>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b">Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-sm">
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">number</td>
+                                        <td class="px-4 py-2">numeric</td>
+                                        <td class="px-4 py-2">GitHub issue number</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">url</td>
+                                        <td class="px-4 py-2">text</td>
+                                        <td class="px-4 py-2">GitHub issue URL</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">title</td>
+                                        <td class="px-4 py-2">text</td>
+                                        <td class="px-4 py-2">Issue title</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">issue_type</td>
+                                        <td class="px-4 py-2">text</td>
+                                        <td class="px-4 py-2">One of: Bug, Security, Performance, Documentation, Feature Request, Other</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">summary</td>
+                                        <td class="px-4 py-2">text</td>
+                                        <td class="px-4 py-2">Concise summary of the issue and its conclusion</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">score</td>
+                                        <td class="px-4 py-2">numeric</td>
+                                        <td class="px-4 py-2">Overall priority score (normalized 0-1, higher = more important). The resulting list is sorted by this value.<br><strong>Formula:</strong> <code class="bg-gray-100 px-1 rounded text-xs">traction * impact / effort</code></td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">traction</td>
+                                        <td class="px-4 py-2">numeric</td>
+                                        <td class="px-4 py-2">Normalized score based on comments, reactions, and engagement. Useful for highlighting the most popular issues.</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">impact</td>
+                                        <td class="px-4 py-2">numeric</td>
+                                        <td class="px-4 py-2">Impact score, from 1 to 4, according to an LLM.</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">impact_analysis</td>
+                                        <td class="px-4 py-2">text</td>
+                                        <td class="px-4 py-2">Explanation of impact score assignment.</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">effort</td>
+                                        <td class="px-4 py-2">numeric</td>
+                                        <td class="px-4 py-2">Effort estimation from LLM analysis.<br><strong>Note:</strong> <i>This estimation can be improved with a dedicated prompt but for now it seems to be enough for a decent issue ranking.</i></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-2 font-mono text-blue-600">createdAt</td>
+                                        <td class="px-4 py-2">text</td>
+                                        <td class="px-4 py-2">ISO timestamp when issue was created</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Additional Fields -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Additional Fields</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full border border-gray-300 rounded-lg">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b">Column</th>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b">Type</th>
+                                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b">Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-sm">
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">avg_comments_per_week</td>
+                                        <td class="px-4 py-2">numeric</td>
+                                        <td class="px-4 py-2">Average number of comments per week over recent period</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">commentCount</td>
+                                        <td class="px-4 py-2">numeric</td>
+                                        <td class="px-4 py-2">Total number of comments (excluding repo members)</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">commenterCount</td>
+                                        <td class="px-4 py-2">numeric</td>
+                                        <td class="px-4 py-2">Number of unique commenters (excluding repo members)</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="px-4 py-2 font-mono text-blue-600">reactionCount</td>
+                                        <td class="px-4 py-2">numeric</td>
+                                        <td class="px-4 py-2">Total number of reactions on issue and comments</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-2 font-mono text-blue-600">last_comment</td>
+                                        <td class="px-4 py-2">text</td>
+                                        <td class="px-4 py-2">ISO timestamp of most recent comment</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">
+                                <strong>Note:</strong> This tool uses AI to analyze issues, so results may vary. Always review the analysis before making important decisions.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Section -->
+            <div class="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+                <h2 class="text-2xl font-bold text-gray-900">Feedback</h2>
+                <p class="text-gray-700">
+                    We'd love to hear your thoughts! Please share your feedback to help us improve this tool.
+                </p>
+                
+                <div class="bg-gray-50 rounded-xl p-4">
+                    <iframe data-tally-src="https://tally.so/embed/npqeWZ?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1" loading="lazy" width="100%" height="237" frameborder="0" marginheight="0" marginwidth="0" title="Github Issue Analyzer v0.1 - Feedback"></iframe>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>var d=document,w="https://tally.so/widgets/embed.js",v=function(){"undefined"!=typeof Tally?Tally.loadEmbeds():d.querySelectorAll("iframe[data-tally-src]:not([src])").forEach((function(e){e.src=e.dataset.tallySrc}))};if("undefined"!=typeof Tally)v();else if(d.querySelector('script[src="'+w+'"]')==null){var s=d.createElement("script");s.src=w,s.onload=v,s.onerror=v,d.body.appendChild(s);}</script>
 </body>
 </html> 
