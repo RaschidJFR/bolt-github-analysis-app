@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from ghIssueAnalyzer import IssueAnalyzer, ChatGPT
 import pandas as pd
 from pydispatch import dispatcher
+import logging
+logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
 
@@ -30,9 +32,9 @@ class AnalysisHandler:
         elif step == IssueAnalyzer.Steps.TRACTION_ANALYSIS_STARTED:
             message = "📣 Analyzing interactions (2/5)..."
         elif step == IssueAnalyzer.Steps.ISSUE_SUMMARIZATION_STARTED:
-            message = "📖 Reading top issues (3/5)..."
+            message = "🧠 Understanding top issues (3/5)..."
         elif step == IssueAnalyzer.Steps.IMPACT_ANALYSIS_STARTED:
-            message = "📊 Analyzing impact (4/5)..."
+            message = "🎯 Doing impact analysis (4/5)..."
         elif step == IssueAnalyzer.Steps.SCORING_STARTED:
             message = "🏅 Ranking issues (5/5)..."
         
@@ -41,15 +43,18 @@ class AnalysisHandler:
             "message": message,
             "timestamp": time.time()
         })
+        logging.info(message)
     
     def on_error(self, data="Unknown error"):
         """Handle errors from the analyzer"""
+        message = f"Analysis failed.Reason: {data}\nPlease try again."
         self.error = data
         self.progress_updates.append({
             "type": "error",
-            "message": data,
+            "message": message,
             "timestamp": time.time()
         })
+        logging.error(message)
     
     def on_completion(self, data=[]):
         """Handle completion from the analyzer"""
@@ -57,13 +62,15 @@ class AnalysisHandler:
         csv_data = pd.DataFrame(data).to_csv(index=False)
         self.csv_data = base64.b64encode(csv_data.encode('utf-8')).decode('utf-8')
         self.is_complete = True
+        message = "Analysis completed successfully!"
         self.progress_updates.append({
             "type": "complete",
-            "message": "Analysis completed successfully!",
+            "message": message,
             "timestamp": time.time(),
             "csv_data": self.csv_data,
             "filename": self.filename
         })
+        logging.info(message)
 
 @app.route('/')
 def index():

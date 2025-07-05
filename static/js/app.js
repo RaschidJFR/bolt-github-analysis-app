@@ -21,6 +21,7 @@ class RepositoryAnalyzer {
         this.analyzeBtn = document.getElementById('analyze-btn');
         this.progressContainer = document.getElementById('progress-container');
         this.progressList = document.getElementById('progress-list');
+        this.progressSpinner = document.querySelector('#progress-container svg.animate-spin');
     }
 
     bindEvents() {
@@ -138,8 +139,10 @@ class RepositoryAnalyzer {
         this.isLoading = true;
         this.progress = [];
         this.setError('');
+        this.updateLoadingState();
         this.updateAnalyzeButton();
         this.updateProgressDisplay();
+        this.startProgressSpinner();
         
         try {
             // Start SSE connection for progress updates
@@ -161,15 +164,26 @@ class RepositoryAnalyzer {
                         this.downloadCSV(data.csv_data, data.filename);
                     }
                     
-                    // Only stop loading, don't reset form
+                    // Add completion message to progress
+                    this.progress.push({
+                        message: '✅ Analysis complete! Your CSV file will download automatically.',
+                        timestamp: new Date().toLocaleTimeString()
+                    });
+                    this.updateProgressDisplay();
+                    
+                    // Stop loading and update UI
                     this.isLoading = false;
+                    this.updateLoadingState();
                     this.updateAnalyzeButton();
+                    this.stopProgressSpinner();
                     es.close();
                     this.eventSource = null;
                 } else if (data.type === 'error') {
                     this.setError(data.message || 'An error occurred during analysis.');
                     this.isLoading = false;
+                    this.updateLoadingState();
                     this.updateAnalyzeButton();
+                    this.stopProgressSpinner();
                     es.close();
                     this.eventSource = null;
                 }
@@ -179,7 +193,9 @@ class RepositoryAnalyzer {
                 console.error('SSE error:', error);
                 this.isLoading = false;
                 this.setError('An error occurred during analysis. Please try again.');
+                this.updateLoadingState();
                 this.updateAnalyzeButton();
+                this.stopProgressSpinner();
                 es.close();
                 this.eventSource = null;
             };
@@ -187,7 +203,9 @@ class RepositoryAnalyzer {
             console.error('Analysis error:', error);
             this.isLoading = false;
             this.setError('An error occurred during analysis. Please try again.');
+            this.updateLoadingState();
             this.updateAnalyzeButton();
+            this.stopProgressSpinner();
         }
     }
 
@@ -202,6 +220,18 @@ class RepositoryAnalyzer {
             `).join('');
         } else {
             this.progressContainer.classList.add('hidden');
+        }
+    }
+
+    startProgressSpinner() {
+        if (this.progressSpinner) {
+            this.progressSpinner.classList.add('animate-spin');
+        }
+    }
+
+    stopProgressSpinner() {
+        if (this.progressSpinner) {
+            this.progressSpinner.classList.remove('animate-spin');
         }
     }
 
