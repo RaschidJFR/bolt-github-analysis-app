@@ -1,6 +1,6 @@
 # GitHub Repository Analyzer
 
-A modern web application for analyzing GitHub repositories and generating comprehensive CSV reports. Built with React frontend and Python backend, optimized for Vercel deployment.
+A modern web application for analyzing GitHub repositories and generating comprehensive CSV reports. Built with Flask backend and vanilla JavaScript frontend, optimized for PythonAnywhere deployment.
 
 ## Features
 
@@ -8,45 +8,58 @@ A modern web application for analyzing GitHub repositories and generating compre
 - **Progress Tracking**: Live progress updates using Server-Sent Events
 - **CSV Export**: Automatic download of detailed analysis reports
 - **Modern UI**: Beautiful, responsive interface with smooth animations
-- **Vercel Optimized**: Designed specifically for Vercel's serverless platform
+- **PythonAnywhere Optimized**: Designed specifically for PythonAnywhere hosting
 
 ## Tech Stack
 
 ### Frontend
-- React 18 with TypeScript
+- Vanilla JavaScript (ES6+)
 - Tailwind CSS for styling
-- Lucide React for icons
-- Vite for build tooling
+- SVG icons for UI elements
+- Server-Sent Events for real-time updates
 
 ### Backend
-- Python serverless functions
+- Flask web framework
+- Python server-side processing
 - Server-Sent Events for real-time updates
 - CSV generation and download
 
 ## Local Development
 
 1. Clone the repository
-2. Install dependencies:
+2. Create a virtual environment:
    ```bash
-   npm install
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
-3. Start the development server:
+3. Install dependencies:
    ```bash
-   npm run dev
+   pip install -r requirements.txt
    ```
+4. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your GitHub token and OpenAI API key
+   ```
+5. Start the development server:
+   ```bash
+   python app.py
+   ```
+6. Open http://localhost:5000 in your browser
 
 ## Deployment
 
-This project is optimized for Vercel deployment:
+This project is optimized for PythonAnywhere deployment. See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
 
-1. Connect your GitHub repository to Vercel
-2. Vercel will automatically detect the configuration
-3. Deploy with a single click
+### Quick Deployment Steps:
 
-The `vercel.json` configuration ensures:
-- Python serverless functions are properly configured
-- Extended timeout for analysis operations
-- Proper routing for API endpoints
+1. Create a PythonAnywhere account
+2. Clone your repository
+3. Set up a virtual environment and install dependencies
+4. Configure environment variables
+5. Set up the web app with WSGI configuration
+6. Configure static files
+7. Reload and test
 
 ## API Endpoints
 
@@ -56,11 +69,10 @@ The `vercel.json` configuration ensures:
 - **Parameters**: `url` (GitHub repository URL)
 - **Response**: Stream of progress events
 
-### `/api/download-csv`
+### `/`
 - **Method**: GET
-- **Description**: Download CSV report for analyzed repository
-- **Parameters**: `url` (GitHub repository URL)
-- **Response**: CSV file download
+- **Description**: Main application interface
+- **Response**: HTML page with the analyzer interface
 
 ## CSV Report Contents
 
@@ -74,7 +86,34 @@ The generated CSV report includes:
 
 ## Architecture
 
-The application uses Server-Sent Events to handle long-running analysis operations while staying within Vercel's serverless function limits. The frontend maintains a persistent connection to receive real-time updates, and automatically downloads the CSV report when analysis is complete.
+The application uses Server-Sent Events to handle long-running analysis operations. The Flask backend processes GitHub repository analysis in the background while the frontend maintains a persistent connection to receive real-time updates. The CSV report is automatically downloaded when analysis is complete.
+
+### Project Structure
+
+```
+├── app.py                 # Main Flask application
+├── wsgi.py               # WSGI configuration for PythonAnywhere
+├── requirements.txt      # Python dependencies
+├── templates/
+│   └── index.html       # Main HTML template
+├── static/
+│   ├── css/
+│   │   └── style.css    # Custom styles
+│   └── js/
+│       └── app.js       # Frontend JavaScript
+├── api/
+│   └── analyze.py       # Original Vercel function (for reference)
+└── DEPLOYMENT.md        # Deployment guide
+```
+
+## Environment Variables
+
+Create a `.env` file with the following variables:
+
+```
+GITHUB_TOKEN=your_github_personal_access_token
+OPENAI_API_KEY=your_openai_api_key
+```
 
 ## Contributing
 
